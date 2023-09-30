@@ -6,6 +6,8 @@ import com.game.entity.Profession;
 import com.game.entity.Race;
 import com.game.repository.PlayerRepository;
 import com.game.requests.PlayerRequest;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,22 +25,26 @@ public class PlayerService {
         this.playerRepository = playerRepository;
         this.playerOperations = playerOperations;
     }
-    @Transactional(readOnly = true)
+    @Transactional
     public List<Player> getFilteredPlayers(String name, String title, Race race, Profession profession,
         Long after, Long before, Boolean banned,
         Integer minExperience, Integer maxExperience,
         Integer minLevel, Integer maxLevel, PlayerOrder order,
         Integer pageNumber, Integer pageSize){
-        return  playerRepository.findFilteredPlayers(name, title, race, profession, after, before, banned, minExperience, maxExperience, minLevel, maxLevel, order, pageNumber, pageSize);
+        Date afterDate = null;
+        Date beforeDate = null;
+        if(after!=null){
+            afterDate = new Date(after);}
+        if(before!=null){
+            beforeDate = new Date(before);
+        }
+        Pageable pageable = PageRequest.of(pageNumber, pageSize);
+        System.out.println(pageSize +"  "+pageNumber);
+        return playerRepository.findFilteredPlayers(name, title, race, profession, afterDate, beforeDate, banned, minExperience, maxExperience, minLevel, maxLevel, order,pageable);
     }
 
     @Transactional
     public Player createPlayer(PlayerRequest playerRequest) {
-        // Проверка на соответствие условиям валидации
-        if (!isValidPlayerRequest(playerRequest)) {
-            throw new IllegalArgumentException("Invalid player data");
-        }
-
         // Создание нового игрока и расчет уровня и опыта
         Player player = new Player();
         player.setName(playerRequest.getName());
@@ -62,22 +68,20 @@ public class PlayerService {
         return playerRepository.save(player);
     }
 
-    public boolean isValidPlayerRequest(PlayerRequest playerRequest) {
+    public boolean isValidPlayerRequest(PlayerRequest player) {
         // Проверка длины имени
-        if (playerRequest.getName() != null && playerRequest.getName().length() > 12) {
+        if (player.getName() != null && player.getName().length() > 12) {
             return false;
         }
-
         // Проверка длины титула
-        if (playerRequest.getTitle() != null && playerRequest.getTitle().length() > 30) {
+        if (player.getTitle() != null && player.getTitle().length() > 30) {
             return false;
         }
-
         // Проверка даты рождения (если она задана)
-        if (playerRequest.getBirthday() != null) {
+        if (player.getBirthday() != null) {
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
             try {
-                Long birthday = playerRequest.getBirthday();
+                Long birthday = player.getBirthday();
 
                 // Проверка, что дата находится в допустимом диапазоне (2000-01-01..3000-12-31)
                 long minAllowedDate = dateFormat.parse("2000-01-01").getTime();
@@ -90,14 +94,12 @@ public class PlayerService {
                 return false;
             }
         }
-
         // Проверка опыта
-        if (playerRequest.getExperience()==null || playerRequest.getExperience() < 0 || playerRequest.getExperience() >= 10_000_000) {
+        if (player.getExperience()==null || player.getExperience() < 0 || player.getExperience() >= 10000000) {
             return false;
         }
         return true;
     }
-
 
     public Player getPlayerById(Long id) {
         return playerRepository.findById(id).orElse(null);
@@ -123,34 +125,36 @@ public class PlayerService {
 
     @Transactional
     public Player updatePlayer(Long id, PlayerRequest playerRequest) {
-        Player player = getPlayerById(id);
+        Player player = playerRepository.findById(id).orElse(null);
         if(player!=null){
         if(playerRequest.getName()!=null) {
             player.setName(playerRequest.getName());
-        }
+        } else playerRequest.setName(player.getName());
         if(playerRequest.getTitle()!=null) {
             player.setTitle(playerRequest.getTitle());
-        }
+        } else playerRequest.setTitle(player.getTitle());
         if(playerRequest.getRace()!=null){
             player.setRace(playerRequest.getRace());
-        }
+        } else playerRequest.setRace(player.getRace());
         if(playerRequest.getProfession()!=null) {
             player.setProfession(playerRequest.getProfession());
-        }
+        } else playerRequest.setProfession(player.getProfession());
         if(playerRequest.getExperience()!=null) {
             int newExperience = playerRequest.getExperience();
             int newLevel = playerOperations.calculateLevel(newExperience);
             int newExpToNextLevel = playerOperations.calculateExpToNextLevel(newExperience);
-
             player.setExperience(newExperience);
             player.setLevel(newLevel);
             player.setUntilNextLevel(newExpToNextLevel);
-        }
+        } else playerRequest.setExperience(player.getExperience());
         player.setBanned(playerRequest.getBanned() != null ? playerRequest.getBanned() : false);
         if(playerRequest.getBirthday()!=null) {
             Date date = new Date(playerRequest.getBirthday());
             player.setBirthday(date);
+        } else playerRequest.setBirthday(new Date(player.getBirthday()));
         }
+        if(!isValidPlayerRequest(playerRequest)){
+            return null;
         }
         // Сохраняем игрока в базе данных
         return playerRepository.save(player);

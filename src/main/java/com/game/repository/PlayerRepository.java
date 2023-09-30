@@ -4,6 +4,7 @@ import com.game.controller.PlayerOrder;
 import com.game.entity.Player;
 import com.game.entity.Profession;
 import com.game.entity.Race;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,8 +16,8 @@ import java.util.List;
 @Repository
 public interface PlayerRepository extends JpaRepository<Player, Long> {
     @Query("SELECT p FROM Player p WHERE " +
-            "(:name IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :name, '%'))) " +
-            "AND (:title IS NULL OR LOWER(p.title) LIKE LOWER(CONCAT('%', :title, '%'))) " +
+            "(:name IS NULL OR p.name LIKE CONCAT('%', :name, '%')) " +
+            "AND (:title IS NULL OR p.title LIKE CONCAT('%', :title, '%')) " +
             "AND (:race IS NULL OR p.race = :race) " +
             "AND (:profession IS NULL OR p.profession = :profession) " +
             "AND (:after IS NULL OR p.birthday >= :after) " +
@@ -27,16 +28,18 @@ public interface PlayerRepository extends JpaRepository<Player, Long> {
             "AND (:minLevel IS NULL OR p.level >= :minLevel) " +
             "AND (:maxLevel IS NULL OR p.level <= :maxLevel) " +
             "ORDER BY " +
-            "CASE WHEN :order = 'ID' THEN p.id END ASC, " +
-            "CASE WHEN :order = 'ID_DESC' THEN p.id END DESC, " +
-            "CASE WHEN :order = 'NAME' THEN p.name END ASC, " +
-            "CASE WHEN :order = 'NAME_DESC' THEN p.name END DESC")
+            "CASE WHEN :order = null THEN p.id END ASC, " +
+            "CASE WHEN :order = 'name' THEN p.name END ASC, " +
+            "CASE WHEN :order = 'experience' THEN p.experience END ASC, " +
+            "CASE WHEN :order = 'birthday' THEN p.birthday END ASC, " +
+            "CASE WHEN :order = 'level' THEN p.level END ASC")
+
     List<Player> findFilteredPlayers(
-            String name, String title, Race race, Profession profession,
-            Long after, Long before, Boolean banned,
-            Integer minExperience, Integer maxExperience,
-            Integer minLevel, Integer maxLevel, PlayerOrder order,
-            Integer offset, Integer limit);
+            @Param("name") String name, @Param("title") String title, @Param("race") Race race, @Param("profession") Profession profession,
+            @Param("after") Date after, @Param("before") Date before, @Param("banned") Boolean banned,
+            @Param("minExperience") Integer minExperience, @Param("maxExperience") Integer maxExperience,
+            @Param("minLevel") Integer minLevel, @Param("maxLevel") Integer maxLevel, @Param("order") PlayerOrder order,
+            Pageable pageable);
 
     @Query("SELECT COUNT(p) FROM Player p WHERE " +
             "(:name IS NULL OR p.name LIKE %:name%) AND " +

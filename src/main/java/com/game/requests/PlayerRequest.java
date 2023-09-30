@@ -1,5 +1,6 @@
 package com.game.requests;
 
+import com.game.controller.PlayerOrder;
 import com.game.entity.Profession;
 import com.game.entity.Race;
 
@@ -7,13 +8,15 @@ import java.util.Date;
 
 public class PlayerRequest {
     private String name;
-
     private String title;
     private Race race;
     private Profession profession;
-    private Integer experience;
     private Date birthday;
+    private Long after;
+    private Long before;
     private Boolean banned;
+    private Integer experience;
+    private PlayerOrder order;
 
     public String getName() {
         return name;
@@ -53,6 +56,30 @@ public class PlayerRequest {
 
     public void setExperience(Integer experience) {
         this.experience = experience;
+    }
+
+    public Long getAfter() {
+        return after;
+    }
+
+    public void setAfter(Long after) {
+        this.after = after;
+    }
+
+    public Long getBefore() {
+        return before;
+    }
+
+    public void setBefore(Long before) {
+        this.before = before;
+    }
+
+    public PlayerOrder getOrder() {
+        return order;
+    }
+
+    public void setOrder(PlayerOrder order) {
+        this.order = order;
     }
 
     public Long getBirthday() {

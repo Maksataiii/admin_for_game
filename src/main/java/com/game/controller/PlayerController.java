@@ -6,7 +6,6 @@ import com.game.entity.Profession;
 import com.game.entity.Race;
 import com.game.requests.PlayerRequest;
 import com.game.service.PlayerService;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -36,7 +35,7 @@ public class PlayerController {
             @RequestParam(name = "maxLevel", required = false) Integer maxLevel,
             @RequestParam(name = "order", required = false) PlayerOrder order,
             @RequestParam(name = "pageNumber", required = false, defaultValue = "0") Integer pageNumber,
-            @RequestParam(name = "pageSize", required = false, defaultValue = "10") Integer pageSize) {
+            @RequestParam(name = "pageSize", required = false, defaultValue = "3") Integer pageSize) {
         // Вызов сервиса для получения отфильтрованного и пагинированного списка игроков
         List<Player> filteredPlayers = playerService.getFilteredPlayers(
                 name, title, race, profession, after, before, banned,
@@ -66,7 +65,7 @@ public class PlayerController {
     @PostMapping
     public ResponseEntity<Player> createPlayer(@RequestBody PlayerRequest playerRequest) {
         if (!playerService.isValidPlayerRequest(playerRequest)) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            return ResponseEntity.badRequest().build();
         }
         Player player = playerService.createPlayer(playerRequest);
         return ResponseEntity.ok(player);
@@ -86,7 +85,6 @@ public class PlayerController {
         return ResponseEntity.ok(player);
     }
 
-
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePlayer(@PathVariable("id") Long id) {
         // Проверьте валидность ID
@@ -105,16 +103,14 @@ public class PlayerController {
     @PostMapping("/{id}")
     public ResponseEntity<Player> updatePlayer(@PathVariable("id") Long id, @RequestBody PlayerRequest playerRequest) {
         Player player = playerService.getPlayerById(id);
-        if (playerRequest.getBirthday() == null && playerRequest.getBanned()==null && playerRequest.getName()==null&&playerRequest.getExperience()==null&&playerRequest.getTitle()==null&&playerRequest.getProfession()==null&&playerRequest.getRace()==null) {
-            return ResponseEntity.ok(player);
-        }
-        if (id==0 || !playerService.isValidPlayerRequest(playerRequest)) {
+        if (id==0) {
             return ResponseEntity.badRequest().build();
         }
         if(player==null){
             return ResponseEntity.notFound().build();
         }
         Player updatePlayer = playerService.updatePlayer(id, playerRequest);
+        if(updatePlayer == null) return ResponseEntity.badRequest().build();
         return ResponseEntity.ok(updatePlayer);
     }
 }
